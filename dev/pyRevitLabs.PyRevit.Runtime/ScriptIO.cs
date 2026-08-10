@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Threading;
 using pyRevitLabs.Common.Extensions;
 
@@ -138,6 +139,14 @@ namespace PyRevitLabs.PyRevit.Runtime {
             if (runtime != null) {
                 if (runtime.ScriptRuntimeConfigs != null && runtime.ScriptRuntimeConfigs.SuppressOutput)
                     return null;
+            }
+
+            // WPF output belongs to Revit's STA thread. Background producers retain
+            // file logging but must not create or inspect a ScriptConsole.
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+                return null;
+
+            if (runtime != null) {
                 return runtime.OutputWindow;
             }
 

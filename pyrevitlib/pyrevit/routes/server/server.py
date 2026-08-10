@@ -45,6 +45,15 @@ EVENT_HNDLR = UI.ExternalEvent.Create(REQUEST_HNDLR)
 class HttpRequestHandler(BaseHTTPRequestHandler):
     """HTTP Requests Handler."""
 
+    def log_message(self, format_string, *args):
+        """Send request diagnostics through pyRevit's thread-safe logger."""
+        mlogger.debug(
+            "%s - - [%s] %s",
+            self.address_string(),
+            self.log_date_time_string(),
+            format_string % args,
+        )
+
     def _parse_api_path(self):
         url_parts = urlparse(self.path)
         if url_parts:
@@ -249,6 +258,14 @@ class ThreadedHttpServer(ThreadingMixIn, HTTPServer):
     """Threaded HTTP server."""
 
     allow_reuse_address = True
+
+    def handle_error(self, request, client_address):
+        """Keep worker failures away from the UI-backed standard error stream."""
+        mlogger.error(
+            "Routes request from %s failed:\n%s",
+            client_address,
+            traceback.format_exc(),
+        )
 
     def shutdown(self):
         self.socket.close()
